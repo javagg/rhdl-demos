@@ -1,5 +1,7 @@
-use rhdl::prelude::*;
 use miette;
+use rhdl::prelude::*;
+
+type nibble = Bits<b4>;
 
 #[derive(Clone, Debug, Default, Synchronous)]
 pub struct U {}
@@ -28,6 +30,53 @@ pub fn my_kernel(cr: ClockReset, i: b8, _q: ()) -> (b16, ()) {
         (sub(i), ())
     }
 }
+
+mod suba {
+    #[derive(PartialEq, Clone, Copy, Debug)]
+    pub struct I {
+        pub enable: bool,
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct I {
+    pub clock_reset: Signal<ClockReset, Red>,
+    // pub enable: Signal<suba::I, Red>,
+    // pub enable: Signal<crate::counter::I, Red>,
+}
+
+mod aaauu {
+    // use rhdl::prelude::Digital;
+    use rhdl::{core::Digital, prelude::Timed};
+
+    #[derive(Debug, Clone, Copy, PartialEq, Timed)]
+    pub struct ZDriver {
+        // pub bus: BitZ<N>,
+        // pub mask: Bits<N>,
+        // pub data: Bits<N>,
+    }
+    
+    impl Digital for ZDriver {
+        const BITS: usize = 8;
+    
+        fn static_kind() -> rhdl::prelude::Kind {
+            todo!()
+        }
+    
+        fn static_trace_type() -> rhdl::rtt::TraceType {
+            todo!()
+        }
+    
+        fn bin(self) -> Vec<rhdl::prelude::BitX> {
+            todo!()
+        }
+    
+        fn dont_care() -> Self {
+            todo!()
+        }
+    }
+}
+
 // pub struct Counter {
 //     pub count: Signal<Bits<4>>,
 //     // pub inc: Signal<bool>,
@@ -58,10 +107,20 @@ pub fn my_kernel(cr: ClockReset, i: b8, _q: ()) -> (b16, ()) {
 //     }
 // }
 
-
 fn main() -> miette::Result<()> {
+
+    // let dff = DFF::<u8>::default();
     let uut: U = U::default();
     let hdl = uut.hdl("uut")?;
     std::fs::write("counter.v", format!("{}", hdl.as_module())).unwrap();
+
+    let fg = &uut.descriptor("uut")?.flow_graph;
+    let mut file = std::fs::File::create("inverter.dot").unwrap();
+    write_dot(fg, &mut file).unwrap();
+
+    // let test_bench = uut.run(inputs)?.collect::<TestBench<_, _>>();
+    // let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
+    // tm_rtl.run_iverilog()?;
+    // simple_traced_synchronous_run(&uut, stream, "auto_double.vcd");
     Ok(())
 }
