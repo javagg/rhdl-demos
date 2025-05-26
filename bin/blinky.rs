@@ -74,7 +74,6 @@ fn main() -> miette::Result<()> {
     };
     let label = trace::svg::format_as_label(&simple.typed_bits()).unwrap();
     println!("{label}");
-    
     let uut: Blinky = Blinky::default();
     let hdl = uut.hdl("uut")?;
     std::fs::write("blinky.v", format!("{}", hdl.as_module())).unwrap();
