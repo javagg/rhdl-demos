@@ -3,6 +3,10 @@ name = "rhdl-demo"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "blinky"
+path = "bin/blinky.rs"
+
 [dependencies]
 rhdl = { git = "https://github.com/samitbasu/rhdl.git" }
 miette = "7.6"

@@ -1,7 +1,133 @@
 use miette;
 use rhdl::prelude::*;
 
-type nibble = Bits<b4>;
+
+pub mod adder {
+    use rhdl::prelude::*;
+    #[derive(Clone, Debug, Synchronous, Default)]
+    pub struct U {}
+
+    impl SynchronousIO for U {
+        type I = (b4, b4);
+        type O = b4;
+        type Kernel = adder;
+    }
+
+    impl SynchronousDQ for U {
+        type D = ();
+        type Q = ();
+    }
+
+    #[kernel]
+    pub fn adder(_cr: ClockReset, i: (b4, b4), _q: ()) -> (b4, ()) {
+        let (a, b) = i;
+        let sum = a + b;
+        (sum, ())
+    }
+}
+
+pub mod anyer {
+    use rhdl::prelude::*;
+
+    #[derive(Clone, Debug, Synchronous, Default)]
+    pub struct U {}
+
+    impl SynchronousIO for U {
+        type I = b4;
+        type O = bool;
+        type Kernel = anyer;
+    }
+
+    impl SynchronousDQ for U {
+        type D = ();
+        type Q = ();
+    }
+
+    #[kernel]
+    pub fn anyer(_cr: ClockReset, i: b4, _q: ()) -> (bool, ()) {
+        (i.any(), ())
+    }
+}
+
+pub mod selector {
+    use rhdl::prelude::*;
+
+    #[derive(Clone, Debug, Synchronous, Default)]
+    pub struct U {}
+
+    impl SynchronousIO for U {
+        type I = (bool, b4, b4);
+        type O = b4;
+        type Kernel = selector;
+    }
+
+    impl SynchronousDQ for U {
+        type D = ();
+        type Q = ();
+    }
+
+    #[kernel]
+    pub fn selector(_cr: ClockReset, i: (bool, b4, b4), _q: ()) -> (b4, ()) {
+        let (sel, a, b) = i;
+        let out = if sel { a } else { b };
+        (out, ())
+    }
+}
+
+pub mod indexor {
+    use rhdl::prelude::*;
+
+    #[derive(Clone, Debug, Synchronous, Default)]
+    pub struct U {}
+
+    impl SynchronousIO for U {
+        type I = (b2, [b4; 4]);
+        type O = b4;
+        type Kernel = indexor;
+    }
+
+    impl SynchronousDQ for U {
+        type D = ();
+        type Q = ();
+    }
+
+    #[kernel]
+    pub fn indexor(_cr: ClockReset, i: (b2, [b4; 4]), _q: ()) -> (b4, ()) {
+        let (ndx, arr) = i;
+        let out = arr[ndx];
+        (out, ())
+    }
+}
+
+pub mod splicer {
+    use rhdl::prelude::*;
+
+    #[derive(Clone, Debug, Synchronous, Default)]
+    pub struct U {}
+
+    impl SynchronousIO for U {
+        type I = (b2, [b4; 4], b4);
+        type O = [b4; 4];
+        type Kernel = splicer;
+    }
+
+    impl SynchronousDQ for U {
+        type D = ();
+        type Q = ();
+    }
+
+    #[kernel]
+    pub fn splicer(_cr: ClockReset, i: (b2, [b4; 4], b4), _q: ()) -> ([b4; 4], ()) {
+        let (ndx, mut arr, val) = i;
+        arr[ndx] = val;
+        (arr, ())
+    }
+}
+
+
+
+
+
 
 #[derive(Clone, Debug, Default, Synchronous)]
 pub struct U {}
@@ -123,4 +249,40 @@ fn main() -> miette::Result<()> {
     // tm_rtl.run_iverilog()?;
     // simple_traced_synchronous_run(&uut, stream, "auto_double.vcd");
     Ok(())
+}
+
+fn test_synchronous_hdl<T, I>(uut: &T, inputs: I) -> miette::Result<()>
+where
+    T: Synchronous,
+    I: Iterator<Item = TimedSample<(ClockReset, T::I)>>,
+{
+    let test_bench = uut.run(inputs)?.collect::<SynchronousTestBench<_, _>>();
+    let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
+    tm_rtl.run_iverilog()?;
+    let tm_fg = test_bench.flow_graph(uut, &TestBenchOptions::default())?;
+    tm_fg.run_iverilog()?;
+    Ok(())
+}
+
+fn test_asynchronous_hdl<T, I>(uut: &T, inputs: I) -> miette::Result<()>
+where
+    T: Circuit,
+    I: Iterator<Item = TimedSample<T::I>>,
+{
+    let test_bench = uut.run(inputs)?.collect::<TestBench<_, _>>();
+    let tm_rtl = test_bench.rtl(uut, &TestBenchOptions::default())?;
+    tm_rtl.run_iverilog()?;
+    let tm_fg = test_bench.flow_graph(uut, &TestBenchOptions::default())?;
+    tm_fg.run_iverilog()?;
+    Ok(())
+}
+
+pub fn exhaustive<N: BitWidth>() -> Vec<Bits<N>> {
+    (0..(1 << N::BITS)).map(bits).collect()
+}
+
+fn aaaa () {
+    let inputs = exhaustive::<U4>()
+    .into_iter()
+    .flat_map(|x| exhaustive::<U4>().into_iter().map(move |y| (x, y)));
 }
